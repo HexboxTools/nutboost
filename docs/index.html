@@ -109,6 +109,11 @@
     <p class="muted">Put Lightning addresses in your feed's value block (<code>type="lnaddress"</code>). Then share this link, or embed it. Fans pay with ecash, or with one invoice from any wallet, and every split gets paid.</p>
     <div class="row"><input id="share-link" readonly class="grow" /><button id="copy-link" class="secondary">Copy</button></div>
     <textarea id="embed" rows="2" readonly></textarea>
+    <h3>Check my feed</h3>
+    <p class="muted">Load your feed above, then check it. This shows what share of your value block a web or Cashu listener can actually pay, and what to change. It only reads your feed and your Lightning addresses' LNURL pages. It never asks for an invoice.</p>
+    <div class="row"><button id="doctor-run" class="secondary">Check loaded feed</button><span id="doctor-verdict" class="muted"></span></div>
+    <table class="splits" id="doctor-table" hidden><thead><tr><th>Recipient</th><th>Type</th><th>Split</th><th>Result</th></tr></thead><tbody></tbody></table>
+    <ul id="doctor-fixes" class="muted" hidden></ul>
   </section>
 
   <section class="card faq">

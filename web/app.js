@@ -1,5 +1,5 @@
 import qrcode from 'qrcode-generator';
-import { BoostWallet, parseFeed, planBoost, quoteBoost, executeBoost, effectiveValue, isPayableByMint, payRoute, retryNutzaps } from '../src/index.js';
+import { BoostWallet, parseFeed, planBoost, quoteBoost, executeBoost, effectiveValue, isPayableByMint, payRoute, retryNutzaps, diagnoseFeed } from '../src/index.js';
 
 const $ = (id) => document.getElementById(id);
 const DEMO_FEED = new URL('demo-feed.xml', location.href).toString();
@@ -257,6 +257,23 @@ function updateShare() {
 }
 $('copy-stranded').onclick = () => navigator.clipboard.writeText($('stranded-list').value);
 $('copy-link').onclick = () => navigator.clipboard.writeText($('share-link').value);
+
+// ---- creator feed doctor -----------------------------------------------
+const VERDICT = { 'fully-payable': '✔ Every split can be paid by web and Cashu listeners.', 'partly-payable': 'Only part of your value block can be paid by web and Cashu listeners.', 'not-payable': '✘ Web and Cashu listeners cannot pay any of your splits.', 'no-value-block': '✘ No <podcast:value> block found.' };
+$('doctor-run').onclick = async () => {
+  if (!feed) { $('doctor-verdict').textContent = 'Load a feed first (step 2).'; return; }
+  $('doctor-run').disabled = true; $('doctor-verdict').textContent = 'Checking Lightning addresses…';
+  try {
+    const d = await diagnoseFeed(feed, { live: true });
+    $('doctor-verdict').textContent = `${VERDICT[d.verdict] || d.verdict} Payable share: ${Math.round(d.share * 1000) / 10}%.`;
+    $('doctor-table').querySelector('tbody').innerHTML = d.rows.map((r) => `<tr><td><b>${esc(r.name)}</b><br><span class="muted">${esc((r.address || '').length > 40 ? r.address.slice(0, 20) + '…' : r.address)}</span></td><td>${esc(r.type)}</td><td class="num">${r.split}</td>
+      <td>${r.ok ? '<span class="pill ok">payable</span>' : `<span class="pill bad">${esc(r.problem === 'unreachable' ? 'no answer' : r.problem)}</span> <span class="muted">${esc(r.problem === 'unreachable' ? 'Its LNURL page did not answer this browser (' + r.reason + ')' : r.reason)}</span>`}</td></tr>`).join('');
+    $('doctor-table').hidden = !d.rows.length;
+    $('doctor-fixes').innerHTML = d.fixes.map((f) => `<li>${esc(f)}</li>`).join('');
+    $('doctor-fixes').hidden = !d.fixes.length;
+  } catch (e) { $('doctor-verdict').textContent = 'Check failed: ' + e.message; }
+  $('doctor-run').disabled = false;
+};
 
 // ---- boot ---------------------------------------------------------------
 const startMint = params.get('mint') || localStorage.getItem('nutboost:lastMint') || $('mint').value;
