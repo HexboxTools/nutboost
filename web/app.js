@@ -1,5 +1,5 @@
 import qrcode from 'qrcode-generator';
-import { BoostWallet, parseFeed, planBoost, quoteBoost, executeBoost, effectiveValue, isPayableByMint } from '../src/index.js';
+import { BoostWallet, parseFeed, planBoost, quoteBoost, executeBoost, effectiveValue, isPayableByMint, payRoute, retryNutzaps } from '../src/index.js';
 
 const $ = (id) => document.getElementById(id);
 const DEMO_FEED = new URL('demo-feed.xml', location.href).toString();
@@ -22,8 +22,11 @@ const storageFor = (mint) => ({
 
 function refreshBalance() {
   $('balance').textContent = bw ? bw.balance().toLocaleString() : '–';
-  const p = bw ? bw.pendingBalance() : 0;
+  const p = bw ? bw.pendingBalance() + bw.pendingEcash.reduce((a, j) => a + (j.sats || 0), 0) : 0;
   $('pending').textContent = p ? `(+${p} pending)` : '';
+  const st = bw?.stranded || [];
+  $('stranded').hidden = !st.length;
+  $('stranded-list').value = st.map((x) => `# ${x.sats} sat at ${x.mintUrl}${x.locked ? ' (locked to recipient)' : ''}: ${x.label || ''}\n${x.token}`).join('\n\n');
 }
 
 async function connect(mint) {
@@ -45,6 +48,7 @@ async function connect(mint) {
     refreshBalance();
     progress('');
     await bw.reconcile().catch(() => {});
+    await retryNutzaps(bw).catch(() => {});
     const minted = await bw.collectTopUps().catch(() => 0);
     if (minted) progress(`Collected ${minted} sat from an earlier top-up.`);
     refreshBalance();
@@ -136,18 +140,25 @@ function showFeed() {
 
 function currentPlan() {
   const sats = parseInt($('amount').value, 10) || 0;
-  return planBoost({ feed, feedUrl, itemGuid: $('episode').value || undefined, sats, unpayable: $('redistribute').checked ? 'redistribute' : 'skip' });
+  return planBoost({ feed, feedUrl, itemGuid: $('episode').value || undefined, sats, unpayable: $('redistribute').checked ? 'redistribute' : 'skip',
+    target: $('show-request').checked ? 'show' : 'splits' });
 }
+
+const ROUTE_LABEL = { lightning: '⚡ lnaddress', nut18: '🥜 ecash (NUT-18)', nutzap: '🥜 nutzap' };
 
 function renderSplits() {
   quoted = null; $('send').disabled = true; $('quote-table').hidden = true;
   if (!feed) return;
+  const item = feed.items.find((i) => i.guid === $('episode').value);
+  const hasShowReq = !!(item?.ecashRequest || feed.ecashRequest);
+  $('show-request-wrap').hidden = !hasShowReq;
+  if (!hasShowReq) $('show-request').checked = false;
   let plan;
   try { plan = currentPlan(); } catch (e) { $('splits').innerHTML = `<tr><td colspan="5">${esc(e.message)}</td></tr>`; return; }
   const total = plan.lines.reduce((a, l) => a + l.recipient.split, 0) || 1;
   $('splits').innerHTML = plan.lines.map((l) => `<tr>
     <td><b>${esc(l.recipient.name)}</b><br><span class="muted">${esc(l.recipient.address.length > 40 ? l.recipient.address.slice(0, 20) + '…' : l.recipient.address)}</span></td>
-    <td>${esc(l.recipient.type)}${l.recipient.fee ? ' · fee' : ''}</td>
+    <td>${esc(ROUTE_LABEL[payRoute(l.recipient)] || l.recipient.type)}${l.recipient.fee ? ' · fee' : ''}</td>
     <td class="num">${l.recipient.fee ? l.recipient.split + '%' : Math.round((l.recipient.split / total) * 1000) / 10 + '%'}</td>
     <td class="num">${l.sats}</td>
     <td>${l.payable ? '<span class="pill ok">payable</span>' : `<span class="pill bad" title="${esc(l.reason)}">skip</span>`}</td></tr>`).join('') +
@@ -172,11 +183,12 @@ $('parse-xml').onclick = () => {
   try { feed = parseFeed($('feed-xml').value); feedUrl = $('feed-url').value.trim(); showFeed(); progress(''); }
   catch (e) { progress(e.message); }
 };
-['episode', 'amount', 'redistribute'].forEach((id) => $(id).addEventListener('input', renderSplits));
+['episode', 'amount', 'redistribute', 'show-request'].forEach((id) => $(id).addEventListener('input', renderSplits));
 $('episode').addEventListener('change', () => { renderSplits(); updateShare(); updateConsent(); });
 
 function needsConsent() {
   if (!bw || !feed || !bw.isTestMint()) return false;
+  if ($('show-request').checked) return true;
   const v = effectiveValue(feed, $('episode').value || undefined).value;
   return (v?.recipients || []).filter(isPayableByMint).some((r) => !DEMO_ADDRESSES.has(r.address.toLowerCase()));
 }
@@ -207,10 +219,10 @@ function renderQuote(results) {
     const st = r ? r.status : q.skipped ? 'skip' : 'quoted';
     const cls = st === 'paid' ? 'ok' : st === 'quoted' ? '' : 'bad';
     const why = r?.reason || q.reason || '';
-    return `<tr><td>${esc(q.line.recipient.name)}</td><td class="num">${q.line.sats}</td><td class="num">${q.feeReserve ?? '–'}</td>
+    return `<tr><td>${esc(q.line.recipient.name)}<br><span class="muted">${esc(q.via || ROUTE_LABEL[q.route] || '')}</span></td><td class="num">${q.line.sats}</td><td class="num">${q.feeReserve ?? '–'}</td>
       <td><span class="pill ${cls}" title="${esc(why)}">${esc(st)}</span> <span class="muted">${esc(why).slice(0, 80)}</span></td></tr>`;
   }).join('');
-  $('maxcost').textContent = `${quoted.maxCost} sat (${quoted.amount} to recipients + up to ${quoted.feeReserve} Lightning fee reserve, plus any mint input fee)`;
+  $('maxcost').textContent = `${quoted.maxCost} sat (${quoted.amount} to recipients + up to ${quoted.feeReserve} in fees: Lightning reserve for melts, mint input fees for ecash)`;
   $('quote-table').hidden = false;
 }
 
@@ -243,6 +255,7 @@ function updateShare() {
   $('share-link').value = u.toString();
   $('embed').value = `<a href="${u}" target="_blank" rel="noopener">⚡🌰 Boost this show with ecash</a>`;
 }
+$('copy-stranded').onclick = () => navigator.clipboard.writeText($('stranded-list').value);
 $('copy-link').onclick = () => navigator.clipboard.writeText($('share-link').value);
 
 // ---- boot ---------------------------------------------------------------

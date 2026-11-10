@@ -65,7 +65,7 @@ export function computeSplits(totalSats, recipients, opts = {}) {
     const s = sats.get(r) ?? 0;
     if (!isPayableByMint(r)) {
       return { recipient: r, sats: policy === 'redistribute' ? 0 : s, payable: false,
-        reason: r.type === 'node' ? 'keysend-only (a mint can only pay invoices)' : 'unsupported recipient type' };
+        reason: r.type === 'node' ? 'keysend-only (a mint can only pay invoices)' : `unsupported recipient (${r.type || 'no type'})` };
     }
     if (s < minSats) return { recipient: r, sats: s, payable: false, reason: `below minimum (${minSats} sat)` };
     return { recipient: r, sats: s, payable: true };

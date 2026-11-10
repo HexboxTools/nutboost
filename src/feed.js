@@ -37,6 +37,18 @@ function channelOnly(xml) {
   return xml.replace(/<item[\s>][\s\S]*?<\/item>/gi, '');
 }
 
+/** <podcast:txt purpose="cashu">creqA…</podcast:txt>: a show-level NUT-18 request (CASHU_STREAMING Route B). */
+function cashuTxt(fragment) {
+  const re = /<podcast:txt(\s[^>]*)?>([\s\S]*?)<\/podcast:txt>/gi;
+  let m;
+  while ((m = re.exec(fragment))) {
+    const a = parseAttributes(m[1] || '');
+    const v = decodeXmlEntities(stripCdata(m[2]).trim());
+    if ((a.purpose || '').toLowerCase() === 'cashu' && /^(creqa|creqb1)/i.test(v)) return v;
+  }
+  return undefined;
+}
+
 /** Parse every <podcast:value> block found in an XML fragment (not descending into items). */
 export function parseValueBlocks(fragment) {
   const blocks = [];
@@ -98,9 +110,11 @@ export function parseFeed(xml) {
       link: firstText(body, 'link'),
       enclosure: enc ? parseAttributes(enc[1]).url : undefined,
       value: pickLightningBlock(parseValueBlocks(body)),
+      ecashRequest: cashuTxt(body),
     });
   }
   return {
+    ecashRequest: cashuTxt(channel),
     title: firstText(channel, 'title'),
     guid: firstText(channel, 'podcast:guid'),
     link: firstText(channel, 'link'),
@@ -124,7 +138,19 @@ export function isLightningAddress(s) {
   return typeof s === 'string' && LNADDR.test(s.trim());
 }
 
-/** Can a Cashu mint pay this recipient? Mints pay BOLT11 invoices, so we need an LNURL-pay target. */
+const ECASH_SLUGS = { cashu: 'nut18', nut18: 'nut18', creq: 'nut18', nutzap: 'nutzap', nostr: 'nutzap', npub: 'nutzap' };
+
+/** 'lightning' | 'nut18' | 'nutzap' | null - how nutboost would pay this recipient. */
+export function payRoute(recipient) {
+  if (recipient.type === 'lnaddress' && isLightningAddress(recipient.address)) return 'lightning';
+  const k = ECASH_SLUGS[recipient.type];
+  if (k === 'nut18' && /^(creqa|creqb1)/i.test(recipient.address)) return 'nut18';
+  if (k === 'nutzap' && /^(npub1|nprofile1|nostr:|[0-9a-f]{64}$)/i.test(recipient.address)) return 'nutzap';
+  return null;
+}
+
+/** Can nutboost pay this recipient from a Cashu wallet? Lightning addresses (via a melt) and
+ *  ecash-direct recipients (NUT-18 requests, NIP-61 nutzaps) yes; keysend nodes no. */
 export function isPayableByMint(recipient) {
-  return recipient.type === 'lnaddress' && isLightningAddress(recipient.address);
+  return payRoute(recipient) !== null;
 }

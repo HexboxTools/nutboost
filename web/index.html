@@ -29,7 +29,7 @@
         <input id="mint" list="mints" value="https://testnut.cashu.space" spellcheck="false" />
         <datalist id="mints">
           <option value="https://testnut.cashu.space">Test mint: fake sats</option>
-          <option value="https://nofees.testnut.cashu.space">Test mint without fees</option>
+          <option value="https://testnut.cashudevkit.org">CDK test mint: fake sats</option>
           <option value="https://mint.minibits.cash/Bitcoin">Minibits: real sats</option>
           <option value="https://mint.coinos.io">coinos: real sats</option>
         </datalist>
@@ -64,6 +64,10 @@
       <button id="export" class="secondary">Export whole balance as a token</button>
       <textarea id="token-out" rows="3" readonly hidden></textarea>
     </div>
+    <div id="stranded" hidden>
+      <p class="muted"><b>Undelivered ecash at other mints.</b> A recipient refused these after a cross-mint, or they were minted late. They're yours: copy the tokens into any Cashu wallet.</p>
+      <textarea id="stranded-list" rows="3" readonly></textarea><button id="copy-stranded" class="secondary">Copy</button>
+    </div>
   </section>
 
   <section class="card">
@@ -91,6 +95,7 @@
       <label class="grow">Your name (optional) <input id="sender" maxlength="40" /></label>
     </div>
     <label>Message <textarea id="message" rows="2" maxlength="200" placeholder="Great episode! 🌰"></textarea></label>
+    <label class="check" id="show-request-wrap" hidden><input type="checkbox" id="show-request" /> Pay the show's own ecash request (<code>&lt;podcast:txt purpose="cashu"&gt;</code>) in one payment, and let its server split it (e.g. nutsplit)</label>
     <label class="check"><input type="checkbox" id="redistribute" /> Give shares a mint can't pay (keysend-only <code>node</code> recipients) to the payable recipients instead of keeping them</label>
     <label class="check" id="testmint-consent-wrap" hidden><input type="checkbox" id="testmint-consent" /> This is a test mint, so nothing real gets paid. But it still asks these real Lightning addresses for invoices. Go ahead.</label>
     <div class="row"><button id="quote">Get quotes</button><button id="send" disabled>Send boost</button></div>
@@ -113,6 +118,7 @@
       <li>The boost is split by the feed's shares in whole sats, using largest remainder. <code>fee="true"</code> recipients take their percentage off the top first.</li>
       <li>For each Lightning-address recipient, nutboost fetches an invoice for exactly that share (LUD-16/06). The invoice carries an <code>rss::payment::boost</code> comment with your message (LUD-12). Then it asks your mint for a melt quote (NUT-05).</li>
       <li>You see the total, including the mints' fee reserves, before anything is paid. Then each share is paid with its own melt. The proofs are journaled before every melt. If a payment fails, the mint is asked whether those proofs were spent (NUT-07). Unspent proofs go back into your wallet.</li>
+      <li><b>Ecash-direct recipients</b> skip Lightning. A <code>type="cashu"</code> recipient holds a NUT-18 payment request (<code>creqA…</code>), delivered by HTTP POST or a NIP-17 DM. A <code>type="nutzap"</code> recipient is an npub, paid as a NIP-61 nutzap: ecash P2PK-locked to the key in their kind:10019, with a 30-day refund to you. If they don't accept your mint, nutboost moves the share across by Lightning first (a "cross-mint"), and adds the target mint's input fee so they still net their full share.</li>
       <li>Keysend-only (<code>node</code>) recipients can't be paid by a mint. They're shown and skipped, and you keep their share, unless you tick "redistribute".</li>
     </ol>
     <p class="muted">Custodial note: ecash is a bearer IOU from the mint you choose. Keep small amounts. Open source (MIT): <a href="https://github.com/HexboxTools/nutboost">github.com/HexboxTools/nutboost</a>. Built for <a href="https://nutnovember.org">Nut November 2026</a>.</p>
