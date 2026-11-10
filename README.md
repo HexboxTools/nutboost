@@ -115,7 +115,7 @@ show-level request: paid 21 Show With Server (show ecash request)
 
 | Concern | What nutboost does |
 |---|---|
-| Split math | Whole sats, largest remainder, ties go to the earlier recipient in the feed. `fee="true"` recipients take their percentage off the top. Shares don't need to add up to 100. |
+| Split math | Same rules as Sovereigncast (and so Hopp and nutsplit): whole sats, integer largest remainder, ties to the earlier recipient in the feed. `fee="true"` recipients take their percentage off the top; recipients with no address are left out; fee-only blocks, or fees adding up to 100 % or more (Hopp audit H-02), are shared by weight. Checked against 100,000 random value blocks with `scripts/splitdiff.mjs` (0 disagreements). |
 | Ecash recipients | NUT-18 (`type="cashu"`) and NIP-61 nutzap (`type="nutzap"`) shares are paid in ecash, with a cross-mint over Lightning when needed. See above. |
 | Keysend-only (`node`) recipients | A mint can only pay invoices, so these are shown and **skipped by default, and you keep that share**. Opt in to *redistribute* to give it to the payable recipients instead. |
 | Dust / LNURL limits | Shares below 1 sat, or outside a recipient's `minSendable`/`maxSendable`, are skipped and reported. Nothing is rounded up behind your back. |
