@@ -34,6 +34,30 @@ nutboost puts a small Cashu wallet in the page and makes the mint do the fan-out
 The creator needs nothing new: no node, no server, no instance. A Lightning address in the feed
 is enough, and Podcasting 2.0 [now recommends](https://podcasting2.org/docs/podcast-namespace/examples/value/metadata) Lightning addresses anyway.
 
+## Feed doctor (for creators): can web and ecash listeners pay your feed?
+
+```sh
+npx github:HexboxTools/nutboost doctor --feed https://example.com/feed.xml --live
+```
+
+It reads your value block, says what share of each boost a Cashu wallet (or any wallet that can only pay
+invoices) can deliver, and prints the exact fix. `--live` also checks that every Lightning address answers its
+LNURL endpoint. It never requests an invoice or moves money. Exit code 0 means fully payable.
+
+**Why it exists.** On Nov 10 2026 we ran it over a random sample of 300 feeds from the Podcast Index
+Value4Value category lists (`node scripts/coverage.mjs < feeds.txt`). 250 feeds fetched, and 109 of them
+still had a value block. Of those 109:
+
+| Result | Feeds |
+| --- | --- |
+| Fully payable from Cashu / any invoice wallet | 21 |
+| Partly payable | 1 |
+| Not payable at all (keysend-only or broken) | 87 |
+| Has a recipient with an empty or `"null"` address that *no* app can pay | 32 |
+
+Most keysend-only feeds point at one custodial node, so a single `lnaddress` line in the feed would make them
+payable from every web wallet, exchange and Cashu wallet. The doctor tells creators exactly which line to add.
+
 ## Ecash-direct recipients (no Lightning hop)
 
 A share doesn't have to leave Cashu at all. nutboost also pays two kinds of recipient in ecash:
