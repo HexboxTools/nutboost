@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:podcast="https://podcastindex.org/namespace/1.0" xmlns:itunes="http://www.itunes.com/dtds/podcast-1.0.dtd">
+  <channel>
+    <title>Nutboost Demo Cast</title>
+    <link>https://hexboxtools.github.io/nutboost/</link>
+    <description>A tiny demo feed for nutboost. Both Lightning addresses belong to the nutboost author (Hexbox Tools); the keysend node is shown to demonstrate a recipient a Cashu mint cannot pay.</description>
+    <podcast:guid>6c0d1f3e-2f6e-5a3b-9a1e-6e7574626f6f</podcast:guid>
+    <podcast:value type="lightning" method="lnaddress" suggested="0.00000021000">
+      <podcast:valueRecipient name="Host" type="lnaddress" address="hexbox@hexbox-ln.hexboxtools.workers.dev" split="60" />
+      <podcast:valueRecipient name="Producer" type="lnaddress" address="hexbox@hexbox-ln.hexboxtools.workers.dev" split="30" />
+      <podcast:valueRecipient name="Keysend-only guest" type="node" address="03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a" split="10" />
+    </podcast:value>
+    <item>
+      <title>Episode 1: One invoice, every split</title>
+      <link>https://hexboxtools.github.io/nutboost/#ep1</link>
+      <guid isPermaLink="false">nutboost-demo-ep1</guid>
+      <enclosure url="https://hexboxtools.github.io/nutboost/silence.mp3" type="audio/mpeg" length="1" />
+      <podcast:value type="lightning" method="lnaddress">
+        <podcast:valueRecipient name="Host" type="lnaddress" address="hexbox@hexbox-ln.hexboxtools.workers.dev" split="50" />
+        <podcast:valueRecipient name="Guest" type="lnaddress" address="hexbox@hexbox-ln.hexboxtools.workers.dev" split="40" />
+        <podcast:valueRecipient name="Keysend-only guest" type="node" address="03ae9f91a0cb8ff43840e3c322c4c61f019d8c1c3cea15a25cfc425ac605e61a4a" split="10" />
+      </podcast:value>
+    </item>
+    <item>
+      <title>Episode 0: Uses the show split</title>
+      <link>https://hexboxtools.github.io/nutboost/#ep0</link>
+      <guid isPermaLink="false">nutboost-demo-ep0</guid>
+    </item>
+  </channel>
+</rss>

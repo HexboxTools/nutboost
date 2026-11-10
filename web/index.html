@@ -1,0 +1,123 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>nutboost: boost every split with Cashu ecash</title>
+<meta name="description" content="Paste a podcast feed, send one boost, and nutboost pays every Lightning-address split in its Podcasting 2.0 value block from a Cashu ecash wallet in your browser. No node, no server, no account." />
+<meta property="og:title" content="nutboost: one invoice, every split paid" />
+<meta property="og:description" content="Value4Value boosts from a Cashu wallet in your browser. Built for Nut November 2026." />
+<link rel="stylesheet" href="style.css" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22%3E%3Ctext y=%22.9em%22 font-size=%2290%22%3E%F0%9F%8C%B0%3C/text%3E%3C/svg%3E" />
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <h1><span class="nut">🌰</span> nutboost</h1>
+    <p class="tag">One invoice, every split paid. Boost a podcast's <code>&lt;podcast:value&gt;</code> recipients from a Cashu ecash wallet that lives in this page.</p>
+    <p class="sub">No node. No server. No account. Your wallet can be anything that pays a Lightning invoice, even one that can't do splits or keysend.</p>
+  </div>
+</header>
+
+<main class="wrap">
+  <div id="banner" class="banner" hidden></div>
+
+  <section class="card" id="wallet-card">
+    <h2>1 · Wallet</h2>
+    <div class="row">
+      <label class="grow">Mint
+        <input id="mint" list="mints" value="https://testnut.cashu.space" spellcheck="false" />
+        <datalist id="mints">
+          <option value="https://testnut.cashu.space">Test mint: fake sats</option>
+          <option value="https://nofees.testnut.cashu.space">Test mint without fees</option>
+          <option value="https://mint.minibits.cash/Bitcoin">Minibits: real sats</option>
+          <option value="https://mint.coinos.io">coinos: real sats</option>
+        </datalist>
+      </label>
+      <button id="connect" class="secondary">Use mint</button>
+    </div>
+    <div class="balance"><span id="balance">–</span> <small>sat</small> <span id="pending" class="muted"></span></div>
+    <div class="tabs">
+      <button data-tab="topup" class="tab active">Top up via Lightning</button>
+      <button data-tab="receive" class="tab">Paste ecash</button>
+      <button data-tab="backup" class="tab">Back up / withdraw</button>
+    </div>
+    <div class="tabpane" id="tab-topup">
+      <div class="row">
+        <label>Amount (sat) <input id="topup-amount" type="number" min="1" value="210" /></label>
+        <button id="topup">Create invoice</button>
+      </div>
+      <div id="invoice" class="invoice" hidden>
+        <div id="qr"></div>
+        <div class="grow">
+          <textarea id="invoice-text" readonly rows="4"></textarea>
+          <div class="row"><button id="copy-invoice" class="secondary">Copy</button><span id="topup-status" class="muted">Waiting for payment…</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="tabpane" id="tab-receive" hidden>
+      <textarea id="token-in" rows="3" placeholder="cashuB…"></textarea>
+      <button id="receive">Receive token</button>
+    </div>
+    <div class="tabpane" id="tab-backup" hidden>
+      <p class="muted">Your ecash is stored in this browser only (localStorage). Export it as a token to back it up or move it to another wallet, like Minibits, cashu.me or Nutstash. Exporting empties this wallet.</p>
+      <button id="export" class="secondary">Export whole balance as a token</button>
+      <textarea id="token-out" rows="3" readonly hidden></textarea>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>2 · Podcast</h2>
+    <div class="row">
+      <label class="grow">RSS feed URL <input id="feed-url" type="url" placeholder="https://example.com/feed.xml" spellcheck="false" /></label>
+      <button id="load-feed">Load</button>
+      <button id="demo-feed" class="secondary">Demo feed</button>
+    </div>
+    <details><summary>Feed blocked by CORS? Paste the XML</summary>
+      <textarea id="feed-xml" rows="5" placeholder="&lt;rss …&gt;"></textarea>
+      <button id="parse-xml" class="secondary">Use pasted XML</button>
+    </details>
+    <div id="feed-info" hidden>
+      <h3 id="feed-title"></h3>
+      <label>Episode <select id="episode"></select></label>
+      <table class="splits"><thead><tr><th>Recipient</th><th>Type</th><th>Split</th><th>Sats</th><th></th></tr></thead><tbody id="splits"></tbody></table>
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>3 · Boost</h2>
+    <div class="row">
+      <label>Amount (sat) <input id="amount" type="number" min="1" value="100" /></label>
+      <label class="grow">Your name (optional) <input id="sender" maxlength="40" /></label>
+    </div>
+    <label>Message <textarea id="message" rows="2" maxlength="200" placeholder="Great episode! 🌰"></textarea></label>
+    <label class="check"><input type="checkbox" id="redistribute" /> Give shares a mint can't pay (keysend-only <code>node</code> recipients) to the payable recipients instead of keeping them</label>
+    <label class="check" id="testmint-consent-wrap" hidden><input type="checkbox" id="testmint-consent" /> This is a test mint, so nothing real gets paid. But it still asks these real Lightning addresses for invoices. Go ahead.</label>
+    <div class="row"><button id="quote">Get quotes</button><button id="send" disabled>Send boost</button></div>
+    <div id="progress" class="muted"></div>
+    <table class="splits" id="quote-table" hidden><thead><tr><th>Recipient</th><th>Sats</th><th>Fee reserve</th><th>Status</th></tr></thead><tbody></tbody><tfoot><tr><td>Max cost</td><td colspan="3" id="maxcost"></td></tr></tfoot></table>
+    <div id="receipt" hidden><button id="download-receipt" class="secondary">Download receipt (boostagram JSON)</button></div>
+  </section>
+
+  <section class="card">
+    <h2>For creators: a boost link for your show</h2>
+    <p class="muted">Put Lightning addresses in your feed's value block (<code>type="lnaddress"</code>). Then share this link, or embed it. Fans pay with ecash, or with one invoice from any wallet, and every split gets paid.</p>
+    <div class="row"><input id="share-link" readonly class="grow" /><button id="copy-link" class="secondary">Copy</button></div>
+    <textarea id="embed" rows="2" readonly></textarea>
+  </section>
+
+  <section class="card faq">
+    <h2>How it works</h2>
+    <ol>
+      <li>Your browser reads the feed's Podcasting 2.0 <code>&lt;podcast:value type="lightning"&gt;</code> block. If the episode has its own block, that one wins.</li>
+      <li>The boost is split by the feed's shares in whole sats, using largest remainder. <code>fee="true"</code> recipients take their percentage off the top first.</li>
+      <li>For each Lightning-address recipient, nutboost fetches an invoice for exactly that share (LUD-16/06). The invoice carries an <code>rss::payment::boost</code> comment with your message (LUD-12). Then it asks your mint for a melt quote (NUT-05).</li>
+      <li>You see the total, including the mints' fee reserves, before anything is paid. Then each share is paid with its own melt. The proofs are journaled before every melt. If a payment fails, the mint is asked whether those proofs were spent (NUT-07). Unspent proofs go back into your wallet.</li>
+      <li>Keysend-only (<code>node</code>) recipients can't be paid by a mint. They're shown and skipped, and you keep their share, unless you tick "redistribute".</li>
+    </ol>
+    <p class="muted">Custodial note: ecash is a bearer IOU from the mint you choose. Keep small amounts. Open source (MIT): <a href="https://github.com/HexboxTools/nutboost">github.com/HexboxTools/nutboost</a>. Built for <a href="https://nutnovember.org">Nut November 2026</a>.</p>
+  </section>
+</main>
+<script type="module" src="app.js"></script>
+</body>
+</html>

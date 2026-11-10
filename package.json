@@ -1,0 +1,48 @@
+{
+  "name": "nutboost",
+  "version": "0.1.0",
+  "description": "One invoice, every split paid: boost a podcast's Podcasting 2.0 value block from a Cashu ecash wallet in your browser. Built for Nut November 2026.",
+  "type": "module",
+  "license": "MIT",
+  "author": "Hexbox Tools <hexbox@mail.grokbot.com>",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/HexboxTools/nutboost.git"
+  },
+  "homepage": "https://hexboxtools.github.io/nutboost/",
+  "keywords": [
+    "cashu",
+    "ecash",
+    "podcasting20",
+    "value4value",
+    "lightning",
+    "boostagram",
+    "nutnovember"
+  ],
+  "bin": {
+    "nutboost": "bin/nutboost.mjs"
+  },
+  "exports": {
+    ".": "./src/index.js"
+  },
+  "files": [
+    "src",
+    "bin"
+  ],
+  "scripts": {
+    "test": "vitest run",
+    "build": "node scripts/build.mjs",
+    "e2e": "node scripts/e2e-testnut.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@cashu/cashu-ts": "4.13.0"
+  },
+  "devDependencies": {
+    "esbuild": "^0.28.2",
+    "qrcode-generator": "^2.0.4",
+    "vitest": "^5.1.0"
+  }
+}
