@@ -5,6 +5,16 @@ import { resolveLnAddress } from './lnurl.js';
 
 const PUBKEY = /^(02|03)[0-9a-f]{64}$/i;
 
+// Lightning nodes that no longer route payments. Keysend to them fails for every app,
+// not just web/Cashu listeners. Each entry cites a public source; add only verifiable ones.
+export const RETIRED_NODES = {
+  '030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3': {
+    name: "getalby.com (Alby's former shared wallet)",
+    note: 'Alby stopped its shared wallet on 2025-01-04; mempool.space lists the node with 0 open channels.',
+    source: 'https://guides.getalby.com/user-guide/alby-account/faq/embrace-alby-hub-phasing-out-albys-shared-wallet',
+  },
+};
+
 /** Check one recipient's shape (no network). */
 export function diagnoseRecipient(r) {
   const route = payRoute(r);
@@ -13,6 +23,10 @@ export function diagnoseRecipient(r) {
   if (r.type === 'node') {
     if (!addr || addr === 'null' || !PUBKEY.test(addr)) {
       return { ok: false, problem: 'broken', reason: `node address "${addr || '(empty)'}" is not a Lightning node key, so nobody can pay this share` };
+    }
+    const dead = RETIRED_NODES[addr.toLowerCase()];
+    if (dead) {
+      return { ok: false, problem: 'retired', reason: `keysend to ${dead.name}: ${dead.note} No app can pay this share; ask the recipient for a Lightning address.`, source: dead.source };
     }
     return { ok: false, problem: 'keysend', reason: 'keysend-only: Cashu mints, web wallets and most custodial wallets can only pay invoices' };
   }
@@ -47,6 +61,10 @@ function fixesFor(rows, verdict) {
   if (rows.some((x) => x.problem === 'keysend')) {
     fixes.push('Add a Lightning address for each keysend recipient, e.g. <podcast:valueRecipient type="lnaddress" address="you@yourwallet.com" .../>. '
       + 'Podcasting 2.0 recommends lnaddress recipients; split-aware apps that prefer keysend can keep using a separate node block.');
+  }
+  if (rows.some((x) => x.problem === 'retired')) {
+    fixes.push('Replace recipients on retired nodes (e.g. the old getalby.com shared node) with each person\'s current Lightning address. '
+      + 'Those shares are lost today even for keysend-capable apps.');
   }
   if (rows.some((x) => x.problem === 'broken')) fixes.push('Fix or remove recipients with an empty/"null"/invalid address: their share cannot be paid by any app.');
   if (rows.some((x) => x.problem === 'unreachable')) fixes.push('A Lightning address did not answer its LNURL endpoint; check it in any wallet before relying on it.');

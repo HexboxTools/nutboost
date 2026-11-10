@@ -55,8 +55,12 @@ still had a value block. Of those 109:
 | Not payable at all (keysend-only or broken) | 87 |
 | Has a recipient with an empty or `"null"` address that *no* app can pay | 32 |
 
-Most keysend-only feeds point at one custodial node, so a single `lnaddress` line in the feed would make them
-payable from every web wallet, exchange and Cashu wallet. The doctor tells creators exactly which line to add.
+Most keysend-only feeds point at one node: `030a58b8653d…77a3`, **getalby.com**, Alby's former shared wallet.
+Alby [stopped that wallet on 2025-01-04](https://guides.getalby.com/user-guide/alby-account/faq/embrace-alby-hub-phasing-out-albys-shared-wallet)
+and mempool.space now lists the node with 0 open channels (27 closed). In our sample **45 feeds send some split
+there and 42 send everything there**, so those boosts fail for *every* app, keysend-capable or not. The doctor
+flags these as `retired` and tells creators to swap in their current Lightning address, the one line that makes
+them payable from every web wallet, exchange and Cashu wallet again.
 
 ## Ecash-direct recipients (no Lightning hop)
 

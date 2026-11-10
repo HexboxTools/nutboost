@@ -24,6 +24,13 @@ describe('doctor', () => {
     expect(d.verdict).toBe('not-payable');
     expect(d.rows[0].problem).toBe('unreachable');
   });
+  it('flags keysend to the retired Alby shared node', async () => {
+    const alby = '030a58b8653d32b99200a2334cfe913e51dc7d155aa0116c176657a4f1722677a3';
+    expect(diagnoseRecipient({ type: 'node', address: alby.toUpperCase().replace('X', 'x') })).toMatchObject({ ok: false, problem: 'retired' });
+    const d = await diagnoseFeed(parseFeed(feedXml(`<podcast:valueRecipient name="Host" type="node" address="${alby}" split="100"/>`)));
+    expect(d.verdict).toBe('not-payable');
+    expect(d.fixes.join(' ')).toMatch(/retired nodes/);
+  });
   it('reports a feed with no value block', async () => {
     const d = await diagnoseFeed(parseFeed('<rss><channel><title>x</title></channel></rss>'));
     expect(d.verdict).toBe('no-value-block');
