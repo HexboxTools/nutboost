@@ -62,6 +62,13 @@ there and 42 send everything there**, so those boosts fail for *every* app, keys
 flags these as `retired` and tells creators to swap in their current Lightning address, the one line that makes
 them payable from every web wallet, exchange and Cashu wallet again.
 
+**Second sample (same night, 400 fresh feeds, none from the first sample).** 341 fetched, 177 with a value block:
+35 fully payable from Cashu, 5 partly, 137 not payable. 78 of 177 send a share to the retired getalby.com node and
+80 of 177 fail for *every* app. Across both samples (n = 286 V4V feeds) **155, about 54%, can't be boosted by any
+app today**; the first sample's higher rate was luck of the draw. One host stands out: every one of the 129 V4V
+feeds we saw on `media.rss.com` was unpayable (retired node or a `"null"` address), so a single host-side fix
+would repair a large slice of the directory.
+
 ## Ecash-direct recipients (no Lightning hop)
 
 A share doesn't have to leave Cashu at all. nutboost also pays two kinds of recipient in ecash:
