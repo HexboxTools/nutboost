@@ -108,3 +108,15 @@ describe('boost flow', () => {
     expect(q.maxCost).toBe(0);
   });
 });
+
+describe('showPostTarget (show-level NUT-18 request, e.g. nutsplit)', async () => {
+  const { showPostTarget } = await import('../src/boost.js');
+  it('adds the episode guid and action=boost so the show books the episode split', () => {
+    expect(showPostTarget('https://split.example.com/pay/show-1', 'ep 1/guest')).toBe('https://split.example.com/pay/show-1?episode=ep+1%2Fguest&action=boost');
+  });
+  it('keeps what the request already sets and works without an episode', () => {
+    expect(showPostTarget('https://s.example/pay/x?episode=a&action=stream', 'b')).toBe('https://s.example/pay/x?episode=a&action=stream');
+    expect(showPostTarget('https://s.example/pay/x', undefined)).toBe('https://s.example/pay/x?action=boost');
+    expect(showPostTarget('not a url', 'b')).toBe('not a url');
+  });
+});

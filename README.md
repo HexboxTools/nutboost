@@ -184,6 +184,13 @@ wallet), `src/boost.js` (plan → quote → pay), `web/` (UI, built into `docs/`
 - [nutsplit](https://github.com/apeirs/nutsplit) (also Nut November 2026) solves the *show side*. It's a server
   the show runs: it receives ecash (NUT-18 / NIP-61 nutzaps), books it to the split and settles in batches. nutboost
   is the *listener side* and needs no server at all. The two complement each other.
+  **Tested together.** On the testnut mint, a local `nutsplit serve` for a feed whose channel split is
+  Host A 50 / Host B 50 and whose guest episode is Guest 90 / Host A 10. nutboost boosted that episode with
+  `nutboost pay --show --episode ep-1-guest --sats 21`. When nutboost pays a show-level request over HTTP
+  it now adds `?episode=<item guid>&action=boost` to the POST URL, the convention nutsplit reads. nutsplit
+  then booked the boost to the **episode** split (`value_source: item`, Guest 20 sat, Host A 2 sat). Before
+  this change, the same boost went to the channel split (Host A / Host B), so the guest got nothing. The
+  parameters are only added when the request's URL doesn't already set them.
 - [Hopp ADR 0014](https://gitlab.com/nodesignal/hopp/-/blob/main/docs/adr/0014-streaming-accrual-and-settlement.md)
   notes that ecash payments in today's players pay the show's instance, not the split recipients.
 

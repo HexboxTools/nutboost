@@ -2,6 +2,7 @@
 // nutboost CLI: plan or pay a Value4Value boost from a Cashu token.
 //   nutboost plan --feed <url|file> [--episode <guid>] --sats 100
 //   nutboost doctor --feed <url|file> [--live]   (creator check: can web/ecash listeners pay this feed?)
+//   nutboost pay  --feed <url|file> ... --show   (one payment to the show's NUT-18 request; its server splits)
 //   nutboost pay  --feed <url|file> [--episode <guid>] --sats 100 --token cashuB... [--message "hi"] [--name sam]
 // `pay` receives the token at its mint, pays every Lightning-address split, and prints
 // the leftover as a new token. Nothing is stored on disk: keep the printed token.
@@ -15,7 +16,7 @@ const { values: a, positionals } = parseArgs({
   options: {
     feed: { type: 'string' }, episode: { type: 'string' }, sats: { type: 'string' },
     token: { type: 'string' }, message: { type: 'string', default: '' }, name: { type: 'string', default: '' },
-    redistribute: { type: 'boolean', default: false }, live: { type: 'boolean', default: false }, yes: { type: 'boolean', default: false }, help: { type: 'boolean', short: 'h' },
+    redistribute: { type: 'boolean', default: false }, show: { type: 'boolean', default: false }, live: { type: 'boolean', default: false }, yes: { type: 'boolean', default: false }, help: { type: 'boolean', short: 'h' },
   },
 });
 const cmd = positionals[0];
@@ -28,12 +29,12 @@ if (cmd === 'doctor' && a.feed) {
   process.exit(d.verdict === 'fully-payable' ? 0 : 2);
 }
 if (a.help || !['plan', 'pay'].includes(cmd) || !a.feed || !a.sats) {
-  console.log('usage: nutboost doctor --feed <url|file> [--live]\n       nutboost plan|pay --feed <url|file> --sats <n> [--episode <guid>] [--token cashuB…] [--message txt] [--name txt] [--redistribute] [--yes]');
+  console.log('usage: nutboost doctor --feed <url|file> [--live]\n       nutboost plan|pay --feed <url|file> --sats <n> [--episode <guid>] [--token cashuB…] [--message txt] [--name txt] [--redistribute] [--show] [--yes]\n       --show pays the feed\'s own <podcast:txt purpose="cashu"> request in one payment; its server (e.g. nutsplit) splits it');
   process.exit(cmd ? 1 : 0);
 }
 const xml = /^https?:\/\//.test(a.feed) ? await (await fetch(a.feed)).text() : await readFile(a.feed, 'utf8');
 const feed = parseFeed(xml);
-const plan = planBoost({ feed, feedUrl: /^https?:/.test(a.feed) ? a.feed : undefined, itemGuid: a.episode, sats: parseInt(a.sats, 10), unpayable: a.redistribute ? 'redistribute' : 'skip' });
+const plan = planBoost({ feed, feedUrl: /^https?:/.test(a.feed) ? a.feed : undefined, itemGuid: a.episode, sats: parseInt(a.sats, 10), unpayable: a.redistribute ? 'redistribute' : 'skip', target: a.show ? 'show' : 'splits' });
 console.log(`${feed.title} · ${plan.item ? plan.item.title : 'channel split'} (${plan.source} value block)`);
 for (const l of plan.lines) console.log(`  ${String(l.sats).padStart(7)} sat  ${l.recipient.name} <${l.recipient.address}>${l.payable ? '' : '  SKIP: ' + l.reason}`);
 console.log(`  ${String(plan.payTotal).padStart(7)} sat  to recipients${plan.keptSats ? `, ${plan.keptSats} kept` : ''}`);

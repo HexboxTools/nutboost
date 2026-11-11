@@ -8,6 +8,20 @@ import { resolveLnAddress, requestInvoice, rssPaymentComment, checkBounds } from
 export const APP_NAME = 'nutboost';
 export const APP_VERSION = '0.2.0';
 
+/**
+ * A show-level NUT-18 POST target, told which episode the boost is for, so a show-side
+ * splitter (nutsplit's `POST /pay/<guid>?episode=<item guid>`) books it to that episode's
+ * value block instead of the channel's. Only `episode` and `action=boost` are added, and
+ * only when the request's own URL does not already set them.
+ */
+export function showPostTarget(target, itemGuid) {
+  let u;
+  try { u = new URL(target); } catch { return target; }
+  if (itemGuid && !u.searchParams.has('episode')) u.searchParams.set('episode', itemGuid);
+  if (!u.searchParams.has('action')) u.searchParams.set('action', 'boost');
+  return u.toString();
+}
+
 /** Which recipients get how much. Pure; no network. */
 export function planBoost({ feed, feedUrl, itemGuid, sats, unpayable = 'skip', target = 'splits' }) {
   const eff = effectiveValue(feed, itemGuid);
@@ -78,6 +92,7 @@ export async function quoteBoost(plan, bw, opts = {}) {
           boostagram: boostagram(plan, line, { message, senderName }) });
       } else if (route === 'nut18') {
         const insp = inspectRequest(line.recipient.address, line.sats, bw.mintUrl);
+        if (plan.source === 'show-request' && insp.transport === 'post') insp.post = { ...insp.post, target: showPostTarget(insp.post.target, plan.item?.guid) };
         const q = { line, route, insp, boostagram: boostagram(plan, line, { message, senderName }), memo: comment };
         if (insp.route.mode === 'crossmint') {
           onProgress?.(`${line.recipient.name} takes ecash from ${insp.route.targetMint} only: quoting a cross-mint…`);
